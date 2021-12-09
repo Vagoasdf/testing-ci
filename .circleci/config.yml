@@ -9,7 +9,7 @@ commands:
 
   freeze_if_nopromote:
     steps:
-    - run:
+      - run:
         name:  If its tagged No Promote we Freeze this.
         command: git log -1 --pretty=%B
 
@@ -43,80 +43,80 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Build the app
-        command: echo "app built! OK"
+          name: Build the app
+          command: echo "app built! OK"
 
   static_analysis:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Run static analysis tests
-        command: echo " Static Analized"
+          name: Run static analysis tests
+          command: echo " Static Analized"
 
   standarts_enforcing:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Run the standart enforcing tests
-        command: echo "standarts enforced"
+          name: Run the standart enforcing tests
+          command: echo "standarts enforced"
 
   test-integration:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Run the integration tests
-        command: echo "Integration tested"
+          name: Run the integration tests
+          command: echo "Integration tested"
 
   deploy:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Deploys the App in the site
-        command: echo "App Deployed Oh Damn"
+          name: Deploys the App in the site
+          command: echo "App Deployed Oh Damn"
 
   other-deploy:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Deploys something else
-        command: echo "Deployed something that does not break the app"
+          name: Deploys something else
+          command: echo "Deployed something that does not break the app"
 
   check-no-promote:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Checks if the PR has the No Prmote tag
-        command: echo "Are you promoted?"
+          name: Checks if the PR has the No Prmote tag
+          command: echo "Are you promoted?"
 
   promote:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Promotes the app to the main site
-        command: echo "Promoted!"
+          name: Promotes the app to the main site
+          command: echo "Promoted!"
 
   revert:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Reverts the current commit
-        command: echo "Promoted!"
+          name: Reverts the current commit
+          command: echo "Promoted!"
 
   unfreeze:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - run:
-        name: Unfreezes the Merge
-        command: echo "Unfreezing Merge!"
+          name: Unfreezes the Merge
+          command: echo "Unfreezing Merge!"
 
 
 workflows:
@@ -125,50 +125,50 @@ workflows:
     jobs:
       - freeze-no-promote
       - test-bash:
-        requires:
-          - freeze-no-promote
+          requires:
+            - freeze-no-promote
       - build:
-        requires:
-          - test-bash
+          requires:
+            - test-bash
       - static_analysis:
-        requires:
-          - build
+          requires:
+            - build
       - standarts_enforcing:
-        requires:
-          - build
+          requires:
+            - build
       - test-integration:
-        requires:
+          requires:
             - static_analysis
             - standarts_enforcing
       - deploy:
-        requires:
-          - build
+          requires:
+            - build
       - other-deploy:
-        requires:
-          - build
+          requires:
+            - build
       - check-no-promote:
-        requires:
-          - deploy
+          requires:
+            - deploy
 
       - promote-hold:
-        type: approval
-        requires:
-          - check-no-promote
+          type: approval
+          requires:
+            - check-no-promote
 
       - revert-hold:
-        type: approval
-        requires:
-          - check-no-promote
+          type: approval
+          requires:
+            - check-no-promote
 
       - promote:
-        requires:
-          - promote-hold
+          requires:
+            - promote-hold
       - revert:
-        requires:
-          - revert-hold
+          requires:
+            - revert-hold
       - unfreeze:
-        requires:
-          - promote
+          requires:
+            - promote
       - unfreeze:
-        requires:
-          - revert
+          requires:
+            - revert
