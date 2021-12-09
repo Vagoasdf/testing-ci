@@ -124,51 +124,51 @@ workflows:
   build-and-deploy:
     jobs:
       - freeze-no-promote
-      test-bash:
+      - test-bash:
         requires:
           - freeze-no-promote
-      build:
+      - build:
         requires:
           - test-bash
-      static_analysis:
+      - static_analysis:
         requires:
           - build
-      standarts_enforcing:
+      - standarts_enforcing:
         requires:
           - build
-      test-integration:
+      - test-integration:
         requires:
             - static_analysis
             - standarts_enforcing
-      deploy:
+      - deploy:
         requires:
           - build
-      other-deploy:
+      - other-deploy:
         requires:
           - build
-      check-no-promote:
+      - check-no-promote:
         requires:
           - deploy
 
-      promote-hold:
+      - promote-hold:
         type: approval
         requires:
           - check-no-promote
 
-      revert-hold:
+      - revert-hold:
         type: approval
         requires:
           - check-no-promote
 
-      promote:
+      - promote:
         requires:
           - promote-hold
-      revert:
+      - revert:
         requires:
           - revert-hold
-      unfreeze:
+      - unfreeze:
         requires:
           - promote
-      unfreeze:
+      - unfreeze:
         requires:
           - revert
