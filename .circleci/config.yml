@@ -111,7 +111,8 @@ jobs:
         command: echo "Promoted!"
 
   unfreeze:
-    - image: cimg/php:8.0.13
+    docker:
+      - image: cimg/php:8.0.13
     steps:
       run:
         name: Unfreezes the Merge
