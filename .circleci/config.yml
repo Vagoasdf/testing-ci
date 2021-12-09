@@ -2,12 +2,11 @@ version: 2
 jobs:
   one:
     docker:
-      - image: circleci/ruby:2.4.1
-        auth:
-          username: mydockerhub-user
-          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
+      - image: cimg/php:8.0.13
+
     steps:
       - checkout
+      - run: php --version
       - run: echo "A first hello"
       - run: mkdir -p my_workspace
       - run: echo "Trying out workspaces" > my_workspace/echo-output
@@ -19,10 +18,8 @@ jobs:
             - echo-output
   two:
     docker:
-      - image: circleci/ruby:2.4.1
-        auth:
-          username: mydockerhub-user
-          password: $DOCKERHUB_PASSWORD  # context / project UI env-var reference
+      - image: cimg/php:8.0.13
+
     steps:
       - checkout
       - run: echo "A more familiar hi"
