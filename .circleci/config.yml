@@ -21,10 +21,10 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Rebase to master
+          name: Rebase to main
           command: |
             git fetch origin
-            git merge origin/master --no-edit
+            git merge origin/main --no-edit
       - git_submodule_init
       - freeze_if_nopromote
 
