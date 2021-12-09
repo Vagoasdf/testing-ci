@@ -1,47 +1,173 @@
-version: 2
+version: 2.1
+
+commands:
+  git_submodule_init:
+    steps:
+      run:
+        name: placefolder for holding submodules
+        command: echo "submodules initialized successfully"
+  freezeifNeeded:
+    steps:
+      run:
+        name:  If its tagged No Promote we Freeze this.
+        command: |
+          git log -1 --pretty=%B
+
 jobs:
-  one:
+
+  freeze-no-promote:
     docker:
       - image: cimg/php:8.0.13
-
     steps:
       - checkout
-      - run: php --version
-      - run: echo "A first hello"
-      - run: mkdir -p my_workspace
-      - run: echo "Trying out workspaces" > my_workspace/echo-output
-      - persist_to_workspace:
-          # Must be an absolute path, or relative path from working_directory
-          root: my_workspace
-          # Must be relative path from root
-          paths:
-            - echo-output
-  two:
+      - run:
+          name: Rebase to master
+          command: |
+            git fetch origin
+            git merge origin/master --no-edit
+      - git_submodule_init
+      - freezeifNeeded
+
+  test-bash:
+    parallelism: 1
     docker:
       - image: cimg/php:8.0.13
-
     steps:
-      - checkout
-      - run: echo "A more familiar hi"
-      - attach_workspace:
-          # Must be absolute path or relative path from working_directory
-          at: my_workspace
+      run:
+          name: Run bash tests
+          command: echo "Bash Working OK"
 
-      - run: |
-          if [[ $(cat my_workspace/echo-output) == "Trying out workspaces" ]]; then
-            echo "It worked!";
-          else
-            echo "Nope!"; exit 1
-          fi
+  build:
+    parallelism: 1
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Build the app
+        command: echo "app built! OK"
+
+  static_analysis:
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Run static analysis tests
+        command: echo " Static Analized"
+
+  standarts_enforcing:
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Run the standart enforcing tests
+        command: echo "standarts enforced"
+
+  test-integration:
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Run the integration tests
+        command: echo "Integration tested"
+
+  deploy:
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Deploys the App in the site
+        command: echo "App Deployed Oh Damn"
+
+  other-deploy:
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Deploys something else
+        command: echo "Deployed something that does not break the app"
+
+  check-no-promote:
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Checks if the PR has the No Prmote tag
+        command: echo "Are you promoted?"
+
+  promote:
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Promotes the app to the main site
+        command: echo "Promoted!"
+
+  revert:
+    docker:
+      - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Reverts the current commit
+        command: echo "Promoted!"
+
+  unfreeze:
+    - image: cimg/php:8.0.13
+    steps:
+      run:
+        name: Unfreezes the Merge
+        command: echo "Unfreezing Merge!"
+
+
 workflows:
   version: 2
-  one_and_two:
+  build-and-deploy:
     jobs:
-      - one
-      - two:
-          requires:
-            - one
-          filters:
-            branches:
-              only:
-                - main
+      - freeze-no-promote
+      test-bash:
+        requires:
+          - freeze-no-promote
+      build:
+        requires:
+          - test-bash
+      static_analysis:
+        requires:
+          - build
+      standarts_enforcing:
+        requires:
+          - build
+      test-integration:
+        requires:
+            - static_analysis
+            - standarts_enforcing
+      deploy:
+        requires:
+          - build
+      other-deploy:
+        requires:
+          - build
+      check-no-promote:
+        requires:
+          - deploy
+
+      promote-hold:
+        type: approval
+        requires:
+          - check-no-promote
+
+      revert-hold:
+        type: approval
+        requires:
+          - check-no-promote
+
+      promote:
+        requires:
+          - promote-hold
+      revert:
+        requires:
+          - revert-hold
+      unfreeze:
+        requires:
+          - promote
+      unfreeze:
+        requires:
+          - revert
