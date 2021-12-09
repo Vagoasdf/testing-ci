@@ -41,3 +41,7 @@ workflows:
       - two:
           requires:
             - one
+          filters:
+            branches:
+              only:
+                - main
