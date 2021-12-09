@@ -4,14 +4,14 @@ commands:
   git_submodule_init:
     steps:
       - run:
-        name: placefolder for holding submodules
-        command: echo "submodules initialized successfully"
+          name: placefolder for holding submodules
+          command: echo "submodules initialized successfully"
 
   freeze_if_nopromote:
     steps:
       - run:
-        name:  If its tagged No Promote we Freeze this.
-        command: git log -1 --pretty=%B
+          name:  If its tagged No Promote we Freeze this.
+          command: git log -1 --pretty=%B
 
 jobs:
 
