@@ -11,10 +11,9 @@ commands:
     steps:
       - run:
           name:  If its tagged No Promote we Freeze this.
-          command: git log -1 --pretty=%B
+          command: .circleci/bin/check_and_freeze.sh
 
 jobs:
-
   freeze-no-promote:
     docker:
       - image: cimg/php:8.0.13
