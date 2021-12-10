@@ -110,16 +110,19 @@ jobs:
           at: .
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo $(cat /is-no-promote)
+          command: echo $(cat is-no-promote)
 
 
   promote:
+
     docker:
       - image: cimg/php:8.0.13
     steps:
+      - attach_workspace:
+          at: .
       - run:
           name: Promotes the app to the main site
-          command: echo $(cat /version_name)
+          command: echo $(cat version_name)
       - unfreeze
 
   revert:
