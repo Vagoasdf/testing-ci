@@ -67,7 +67,7 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - run:
-          name: Create workspace directory 
+          name: Create workspace directory
           command: mkdir workspace
       - run:
           name: Build the app
@@ -139,6 +139,7 @@ jobs:
     steps:
       - attach_workspace:
           at: /tmp/workspace
+      - checkout
       - promote
       - unfreeze
 
@@ -146,6 +147,7 @@ jobs:
     docker:
       - image: cimg/php:8.0.13
     steps:
+      - checkout
       - revert
       - unfreeze
 
