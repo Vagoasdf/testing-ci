@@ -7,31 +7,21 @@ commands:
           name: placefolder for holding submodules
           command: echo "submodules initialized successfully"
 
+  unfreeze:
+    steps:
+      - run:
+          name : Unfreezes
+          comand: echo "Unfreezing Merge"
   freeze_if_nopromote:
     steps:
       - run:
           name:  If its tagged No Promote we Freeze this.
           command: .circleci/bin/check_and_freeze.sh
 
-  get_pr_title:
+  get_pr_promote:
     steps:
       - run:
-          command: |
-
-            PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
-            echo "PR_NUMBER: $PR_NUMBER"
-            echo "CircleCI PR Number: $CIRCLE_PR_NUMBER"	
-            echo "export GITHUB_PR_NUMBER=$PR_NUMBER" >> $BASH_ENV
-            
-            API_GITHUB="https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
-            PR_REQUEST_URL="$API_GITHUB/pulls/$PR_NUMBER"
-            
-            PR_RESPONSE=$(curl -H "Authorization: token $GITHUB_TOKEN" "$PR_REQUEST_URL")
-            PR_TITLE=$(echo $PR_RESPONSE | jq -e '.title' | tr -d '"')
-
-            echo "PR_TITLE: $PR_TITLE"
-
-            echo "export GITHUB_PR_TITLE='${PR_TITLE/"'"/}'" >> $BASH_ENV
+          command: .circleci/bin/get_pr_promote.sh
 
 jobs:
   freeze-no-promote:
@@ -45,8 +35,12 @@ jobs:
             git fetch origin
             git merge origin/main --no-edit
       - git_submodule_init
-      - get_pr_title
+      - get_pr_promote
       - freeze_if_nopromote
+    persist-to-workspace:
+      root: workspace
+      paths:
+        - is-no-promote
 
   test-bash:
     parallelism: 1
@@ -110,9 +104,12 @@ jobs:
     docker:
       - image: cimg/php:8.0.13
     steps:
+      - attach-workspace:
+          - at: /tmp/workspace
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo "Are you promoted?"
+          command: echo $(cat /tmp/workspace/is-no-promote)
+
 
   promote:
     docker:
@@ -121,6 +118,7 @@ jobs:
       - run:
           name: Promotes the app to the main site
           command: echo "Promoted!"
+      - unfreeze
 
   revert:
     docker:
@@ -129,15 +127,7 @@ jobs:
       - run:
           name: Reverts the current commit
           command: echo "Promoted!"
-
-  unfreeze:
-    docker:
-      - image: cimg/php:8.0.13
-    steps:
-      - run:
-          name: Unfreezes the Merge
-          command: echo "Unfreezing Merge!"
-
+      - unfreeze
 
 workflows:
   version: 2
