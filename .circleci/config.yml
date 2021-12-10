@@ -26,7 +26,7 @@ commands:
   promote:
     steps:
       - run:
-          command: .circleci/bin/promote.sh
+          command: .circleci/bin/get_pr_promote.sh
 
   revert:
     steps:
@@ -44,7 +44,7 @@ jobs:
       - freeze_if_nopromote
 
       - persist_to_workspace:
-          root: .
+          root: workspace
           paths:
             - is-no-promote
 
@@ -68,12 +68,12 @@ jobs:
     steps:
       - run:
           name: Build the app
-          command: echo "12345" > version_name
+          command: echo "12345" > workspace/version_name
       - run:
           name: Send a service
-          command: echo "servo" > service
+          command: echo "servo" > workspace/service
       - persist_to_workspace:
-          root: .
+          root: workspace
           paths:
             - version_name
             - service
@@ -123,10 +123,10 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: .
+          at: /tmp/workspace
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo $(cat is-no-promote)
+          command: echo $(cat /tmp/workspace/is-no-promote)
 
 
   promote:
@@ -135,7 +135,7 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: .
+          at: /tmp/workspace
       - promote
       - unfreeze
 
