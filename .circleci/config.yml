@@ -26,7 +26,7 @@ commands:
   promote:
     steps:
       - run:
-          command: .circleci/bin/get_pr_promote.sh
+          command: .circleci/bin/promote.sh
 
   revert:
     steps:
