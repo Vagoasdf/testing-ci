@@ -123,7 +123,7 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: .
+          at: /tmp/workspace
       - run:
           name: Checks if the PR has the No Prmote tag
           command: echo $(is-no-promote)
@@ -135,7 +135,7 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: .
+          at: /tmp/workspace
       - checkout
       - promote
       - unfreeze
