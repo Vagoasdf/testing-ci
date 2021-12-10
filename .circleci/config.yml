@@ -12,6 +12,7 @@ commands:
       - run:
           name : Unfreezes
           command: echo "Unfreezing Merge"
+
   freeze_if_nopromote:
     steps:
       - run:
@@ -34,7 +35,7 @@ jobs:
       - freeze_if_nopromote
 
       - persist_to_workspace:
-          root: workspace
+          root: .
           paths:
             - is-no-promote
 
@@ -54,7 +55,12 @@ jobs:
     steps:
       - run:
           name: Build the app
-          command: echo "app built! OK"
+          command: echo "12345" > version_name
+
+      - persist_to_workspace:
+          root: .
+          paths:
+            - version_name
 
   static_analysis:
     docker:
@@ -101,10 +107,10 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: .
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo $(cat /tmp/workspace/is-no-promote)
+          command: echo $(cat /is-no-promote)
 
 
   promote:
@@ -113,7 +119,7 @@ jobs:
     steps:
       - run:
           name: Promotes the app to the main site
-          command: echo "Promoted!"
+          command: echo $(cat /version_name)
       - unfreeze
 
   revert:
