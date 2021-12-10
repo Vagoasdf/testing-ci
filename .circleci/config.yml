@@ -11,7 +11,7 @@ commands:
     steps:
       - run:
           name : Unfreezes
-          comand: echo "Unfreezing Merge"
+          command: echo "Unfreezing Merge"
   freeze_if_nopromote:
     steps:
       - run:
@@ -37,10 +37,11 @@ jobs:
       - git_submodule_init
       - get_pr_promote
       - freeze_if_nopromote
-    persist-to-workspace:
-      root: workspace
-      paths:
-        - is-no-promote
+
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - is-no-promote
 
   test-bash:
     parallelism: 1
@@ -104,8 +105,8 @@ jobs:
     docker:
       - image: cimg/php:8.0.13
     steps:
-      - attach-workspace:
-          - at: /tmp/workspace
+      - attach_workspace:
+          at: /tmp/workspace
       - run:
           name: Checks if the PR has the No Prmote tag
           command: echo $(cat /tmp/workspace/is-no-promote)
@@ -169,16 +170,10 @@ workflows:
           type: approval
           requires:
             - check-no-promote
-
+          
       - promote:
           requires:
             - promote-hold
       - revert:
           requires:
             - revert-hold
-      - unfreeze:
-          requires:
-            - promote
-      - unfreeze:
-          requires:
-            - revert
