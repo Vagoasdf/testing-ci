@@ -129,7 +129,7 @@ jobs:
           at: .
       - run:
           name: Promotes the app to the main site
-          command: .circleci/bin/promote.sh
+          command: .circleci/bin/get_pr_promote.sh
       - unfreeze
 
   revert:
