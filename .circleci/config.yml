@@ -44,7 +44,7 @@ jobs:
       - freeze_if_nopromote
 
       - persist_to_workspace:
-          root: workspace
+          root: .
           paths:
             - is-no-promote
 
@@ -67,16 +67,13 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - run:
-          name: Create workspace directory
-          command: mkdir workspace
-      - run:
           name: Build the app
-          command: echo "12345" > workspace/version_name
+          command: echo "12345" > version_name
       - run:
           name: Send a service
-          command: echo "servo" > workspace/service
+          command: echo "servo" > service
       - persist_to_workspace:
-          root: workspace
+          root: .
           paths:
             - version_name
             - service
@@ -126,10 +123,10 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: .
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo $(cat /tmp/workspace/is-no-promote)
+          command: echo $(is-no-promote)
 
 
   promote:
@@ -138,7 +135,7 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: .
       - checkout
       - promote
       - unfreeze
