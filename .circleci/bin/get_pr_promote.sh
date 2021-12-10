@@ -2,13 +2,13 @@
 
 mkdir -p workspace
 commitName=" $( git log -1 --pretty=%B) "
-PRTag=$(echo "$commitName" | cut -d '[' -f2 | cut -d ']' -f1)
+commitTitleTag=$(echo "$commitName" | cut -d '[' -f2 | cut -d ']' -f1)
 
-if [ "$PRTag" = "No Promote" ] ||
-  [ "$PRTag" = "no promote" ] ||
-  [ "$PRTag" = "NO PROMOTE" ] ||
-  [ "$PRTag" = "No promote" ] ||
-  [ "$PRTag" = "no Promote" ]; then
+if [ "$commitTitleTag" = "No Promote" ] ||
+  [ "$commitTitleTag" = "no promote" ] ||
+  [ "$commitTitleTag" = "NO PROMOTE" ] ||
+  [ "$commitTitleTag" = "No promote" ] ||
+  [ "$commitTitleTag" = "no Promote" ]; then
 
   echo True > is-no-promote
 else

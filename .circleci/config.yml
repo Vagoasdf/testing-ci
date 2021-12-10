@@ -44,6 +44,10 @@ jobs:
     docker:
       - image: cimg/php:8.0.13
     steps:
+      - checkout
+      - git_submodule_init
+      - get_pr_promote
+      - freeze_if_nopromote
       - run:
           name: Run bash tests
           command: echo "Bash Working OK"
@@ -56,11 +60,14 @@ jobs:
       - run:
           name: Build the app
           command: echo "12345" > version_name
-
+      - run:
+          name: Send a service
+          command: echo "servo" > service
       - persist_to_workspace:
           root: .
           paths:
             - version_name
+            - service
 
   static_analysis:
     docker:
@@ -122,7 +129,7 @@ jobs:
           at: .
       - run:
           name: Promotes the app to the main site
-          command: echo $(cat version_name)
+          command: .circleci/bin/promote.sh
       - unfreeze
 
   revert:
@@ -131,7 +138,7 @@ jobs:
     steps:
       - run:
           name: Reverts the current commit
-          command: echo "Promoted!"
+          command: .circleci/bin/revert.sh
       - unfreeze
 
 workflows:
