@@ -7,7 +7,7 @@ stop_previous_versions() {
     echo "Stopping all previous serving versions of $1"
 }
 
-service= $(cat /tmp/worskpace/version_name)
+service= $(cat /tmp/workspace/version_name)
 version_name= $(cat /tmp/workspace/service)
 
 echo ""

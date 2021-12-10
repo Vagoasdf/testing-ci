@@ -23,6 +23,7 @@ commands:
     steps:
       - run:
           command: .circleci/bin/get_pr_promote.sh
+
   promote:
     steps:
       - run:
@@ -34,6 +35,7 @@ commands:
           command: .circleci/bin/revert.sh
 
 jobs:
+
   freeze-no-promote:
     docker:
       - image: cimg/php:8.0.13
@@ -126,7 +128,7 @@ jobs:
           at: /tmp/workspace
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo $(is-no-promote)
+          command: echo $(/tmp/workspace/is-no-promote)
 
 
   promote:
