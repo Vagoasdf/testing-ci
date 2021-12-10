@@ -23,6 +23,15 @@ commands:
     steps:
       - run:
           command: .circleci/bin/get_pr_promote.sh
+  promote:
+    steps:
+      - run:
+          command: .circleci/bin/promote.sh
+
+  revert:
+    steps:
+      - run:
+          command: .circleci/bin/revert.sh
 
 jobs:
   freeze-no-promote:
@@ -127,18 +136,14 @@ jobs:
     steps:
       - attach_workspace:
           at: .
-      - run:
-          name: Promotes the app to the main site
-          command: .circleci/bin/get_pr_promote.sh
+      - promote
       - unfreeze
 
   revert:
     docker:
       - image: cimg/php:8.0.13
     steps:
-      - run:
-          name: Reverts the current commit
-          command: .circleci/bin/revert.sh
+      - revert
       - unfreeze
 
 workflows:
