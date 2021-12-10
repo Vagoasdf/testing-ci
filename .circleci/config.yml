@@ -29,11 +29,6 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - checkout
-      - run:
-          name: Rebase to main
-          command: |
-            git fetch origin
-            git merge origin/main --no-edit
       - git_submodule_init
       - get_pr_promote
       - freeze_if_nopromote
@@ -170,7 +165,7 @@ workflows:
           type: approval
           requires:
             - check-no-promote
-          
+
       - promote:
           requires:
             - promote-hold
