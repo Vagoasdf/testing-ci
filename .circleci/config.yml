@@ -67,6 +67,9 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - run:
+          name: Create workspace directory 
+          command: mkdir workspace
+      - run:
           name: Build the app
           command: echo "12345" > workspace/version_name
       - run:
