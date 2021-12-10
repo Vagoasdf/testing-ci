@@ -1,0 +1,421 @@
+# This code is licensed from CircleCI to the user under the MIT license.
+# See here for details: https://circleci.com/developer/orbs/licensing
+commands:
+  build-prospective-branch:
+    description: |
+      Builds the prospective merge branch by merging the head branch into the pull request's base branch.
+      Requires `GITHUB_EMAIL`, `GITHUB_USERNAME`, and `GITHUB_TOKEN` to be set as environment variables.
+    parameters:
+      force:
+        default: false
+        description: |
+          If `true`, this command will exit successfully even if the merge fails.
+          By default, this is disabled, to allow failing when a merge conflict occurs.
+        type: boolean
+      get_commit_message:
+        default: false
+        description: If true, also sets GITHUB_PR_COMMIT_MESSAGE. This requires an additional API call.
+        type: boolean
+    steps:
+      - checkout
+      - get-pr-info:
+          get_commit_message: << parameters.get_commit_message >>
+      - run:
+          command: |
+            set +e
+            git config --global user.email "$GITHUB_EMAIL"
+            git config --global user.name "$GITHUB_USERNAME"
+            # Merge the branch with no commit and then create a custom commit message contianing the original commit message.
+            git fetch && git merge "origin/$GITHUB_PR_BASE_BRANCH" --no-commit
+            if [[ $? -ne 0 && << parameters.force >> == false ]]; then
+              echo "Failed to merge $GITHUB_PR_BASE_BRANCH into $CIRCLE_BRANCH"
+              exit 1
+            fi
+            git commit -am "Merging ${GITHUB_PR_BASE_BRANCH} into ${CIRCLE_BRANCH}. ${GITHUB_PR_COMMIT_MESSAGE}"
+            if [[ $? -ne 0 ]]; then
+              echo "Commmit failed... nothing to commit...Continue anyway."
+              exit 0
+            fi
+          name: Build prospective merge branch
+  get-pr-info:
+    description: |
+      Gets and sets the following environment variables:
+          * `GITHUB_PR_BASE_BRANCH` - The base branch for the PR.
+          * `GITHUB_PR_NUMBER` - The number of the PR.
+          * `GITHUB_PR_TITLE` - The title of the PR.
+          * `GITHUB_PR_COMMIT_MESSAGE` - The current commit's message. (Optional)
+          * `GITHUB_PR_AUTHOR_USERNAME` - The PR author's username.
+          * `GITHUB_PR_AUTHOR_NAME` - The PR author's name. (Optional)
+          * `GITHUB_PR_AUTHOR_EMAIL` - The PR author's email address. (Optional)
+      Requires  `GITHUB_TOKEN` to be set as an environment variable.
+    parameters:
+      get_commit_message:
+        default: false
+        description: |
+          If true, also sets GITHUB_PR_COMMIT_MESSAGE. This requires an additional API call.
+        type: boolean
+      get_pr_author_email:
+        default: false
+        description: |
+          If true, also sets GITHUB_PR_AUTHOR_EMAIL. This requires an additional API call.
+        type: boolean
+      get_pr_author_name:
+        default: false
+        description: |
+          If true, also sets GITHUB_PR_AUTHOR_NAME. This requires an additional API call.
+        type: boolean
+    steps:
+      - run:
+          command: |
+            # Check `jq` dependency
+            if ! (command -v jq >/dev/null 2>&1); then
+              echo "This command requires jq to be installed"
+              exit 1
+            fi
+            
+            PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
+            echo "PR_NUMBER: $PR_NUMBER"
+            echo "export GITHUB_PR_NUMBER=$PR_NUMBER" >> $BASH_ENV
+            
+            API_GITHUB="https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
+            PR_REQUEST_URL="$API_GITHUB/pulls/$PR_NUMBER"
+            PR_RESPONSE=$(curl -H "Authorization: token $GITHUB_TOKEN" "$PR_REQUEST_URL")
+            
+            PR_TITLE=$(echo $PR_RESPONSE | jq -e '.title' | tr -d '"')
+            echo "PR_TITLE: $PR_TITLE"
+            echo "export GITHUB_PR_TITLE='${PR_TITLE/"'"/}'" >> $BASH_ENV
+            
+            PR_BASE_BRANCH=$(echo $PR_RESPONSE | jq -e '.base.ref' | tr -d '"')
+            echo "PR_BASE_BRANCH: $PR_BASE_BRANCH"
+            echo "export GITHUB_PR_BASE_BRANCH='${PR_BASE_BRANCH/"'"/}'" >> $BASH_ENV
+            
+            PR_AUTHOR_USERNAME=$(echo $PR_RESPONSE | jq -e '.user.login' | tr -d '"')
+            echo "PR_AUTHOR_USERNAME: $PR_AUTHOR_USERNAME"
+            echo "export GITHUB_PR_AUTHOR_USERNAME='${PR_AUTHOR_USERNAME/"'"/}'" >> $BASH_ENV
+            
+            if [[ << parameters.get_pr_author_email >> == true || << parameters.get_pr_author_name >> ]]; then
+              # We need to use the email address associated with the merge_commit_sha since
+              # CIRCLE_SHA1 may have been authored by someone who is not the PR author.
+              # Sadly, PR_RESPONSE doesn't include the email associated with the merge_commit_sha.
+              # So we have to get that from the commit information.
+            
+              PR_MERGE_COMMIT_SHA=$(echo $PR_RESPONSE | jq -e '.merge_commit_sha' | tr -d '"')
+              COMMIT_REQUEST_URL="$API_GITHUB/commits/$PR_MERGE_COMMIT_SHA"
+              COMMIT_RESPONSE=$(curl -H "Authorization: token $GITHUB_TOKEN" "$COMMIT_REQUEST_URL")
+            fi
+            
+            <<# parameters.get_pr_author_email >>
+            PR_AUTHOR_EMAIL=$(echo $COMMIT_RESPONSE | jq -e '.commit.author.email' | tr -d '"')
+            echo "PR_AUTHOR_EMAIL: $PR_AUTHOR_EMAIL"
+            echo "export GITHUB_PR_AUTHOR_EMAIL='${PR_AUTHOR_EMAIL/"'"/}'" >> $BASH_ENV
+            <</ parameters.get_pr_author_email >>
+            
+            <<# parameters.get_pr_author_name >>
+            PR_AUTHOR_NAME=$(echo $COMMIT_RESPONSE | jq -e '.commit.author.name' | tr -d '"')
+            echo "PR_AUTHOR_NAME: $PR_AUTHOR_NAME"
+            echo "export GITHUB_PR_AUTHOR_NAME='${PR_AUTHOR_NAME/"'"/}'" >> $BASH_ENV
+            <</ parameters.get_pr_author_name >>
+            
+            <<# parameters.get_commit_message >>
+            COMMIT_REQUEST_URL="$API_GITHUB/commits/$CIRCLE_SHA1"
+            COMMIT_RESPONSE=$(curl -H "Authorization: token $GITHUB_TOKEN" "$COMMIT_REQUEST_URL")
+            PR_COMMIT_MESSAGE=$(echo $COMMIT_RESPONSE | jq -e '.commit.message' | tr -d '"')
+            echo "PR_COMMIT_MESSAGE: $PR_COMMIT_MESSAGE"
+            echo "export GITHUB_PR_COMMIT_MESSAGE='${PR_COMMIT_MESSAGE//\'/}'" >> $BASH_ENV
+            <</ parameters.get_commit_message >>
+          name: Get PR information
+          when: always
+  post-pr-comment:
+    description: |
+      Post a comment on the pull request.
+      Requires `GITHUB_TOKEN` to be set as an environment variable.
+    parameters:
+      comment:
+        description: Content of the comment to post
+        type: string
+      when:
+        default: on_success
+        description: Condition for when the comment should be created
+        enum:
+          - on_success
+          - on_fail
+          - always
+        type: enum
+    steps:
+      - run:
+          command: |
+            GITHUB_PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
+            curl \
+              -X POST \
+              -d "{\"body\": \"<< parameters.comment >>\"}" \
+              -H "Authorization: token $GITHUB_TOKEN" \
+              "https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/issues/${GITHUB_PR_NUMBER}/comments"
+          name: Post comment to PR
+          when: << parameters.when >>
+  slack-pr-author:
+    description: |
+      Send a Slack direct message to the PR author, or to a channel, @mentioning the PR author.
+      Requires `SLACK_OAUTH_TOKEN` to be set as an environment variable. If you'd like to have the workflow name be displayed as well, `CIRCLECI_API_TOKEN` should be set. For more details, see https://github.com/NarrativeScience/circleci-orb-ghpr#enabling-slack-notifications.
+      
+      The following are the mechanisms (see `get_slack_user_by`) by which a Slack user can be found for the PR author:
+          * `email` - Find a Slack user with the same email address as GITHUB_PR_AUTHOR_EMAIL.
+          * `display_name` - Find a Slack user with their Slack profile name, i.e. "Display name", exactly equal to GITHUB_PR_AUTHOR_USERNAME. First match only.
+          * `real_name` - Find a Slack user with their Slack profile real_name field, i.e. "Full name", exactly equal to GITHUB_PR_AUTHOR_NAME. Fist match only.
+          * `title_tag` - Find a Slack user with a Slack profile title field, i.e. "What I do", containing the string "[gh:GITHUB_PR_AUTHOR_USERNAME]". First match only.
+          * `meseeks` - Try to employ all the mechanisms above, in order, to find a Slack user.
+    parameters:
+      channel:
+        default: ""
+        description: |
+          Optional channel to send a message to, ex. `#some-channel`.
+          If provided, will message the channel but @mention the PR author.
+          Otherwise, the message is sent to the PR author directly.
+        type: string
+      color:
+        default: '#DDDDDD'
+        description: |
+          The color to format the message with.
+          Should be a hex value wrapped in quotes because we're in YAML land.
+        type: string
+      get_slack_user_by:
+        default: email
+        description: The mechanism by which to find the PR author's associated Slack user ID.
+        enum:
+          - email
+          - display_name
+          - real_name
+          - title_tag
+          - meseeks
+        type: enum
+      message:
+        description: |
+          The message to send.
+          Supports Slack mrkdown syntax - https://api.slack.com/reference/surfaces/formatting#basics
+        type: string
+      pass_on_fail:
+        default: true
+        description: |
+          Whether or not the command should exit if anything fails. Ultimately, sending a Slack message is a nice-to-have, but setting this to `fail` is a way to enforce enabling Slack messages. An example scenario where it would be useful is if messages are sent to a channel and the PR author should be tagged to get their attention.
+        type: boolean
+      when:
+        default: on_success
+        description: Condition for when the message should be sent.
+        enum:
+          - on_success
+          - on_fail
+          - always
+        type: enum
+    steps:
+      - get-pr-info:
+          get_pr_author_email: true
+          get_pr_author_name: true
+      - run:
+          command: |
+            EXIT_STATUS=1
+            
+            <<# parameters.pass_on_fail >>
+            set +e
+            EXIT_STATUS=0
+            <</ parameters.pass_on_fail >>
+            
+            if ! (command -v jq >/dev/null 2>&1); then
+              echo "This command requires jq to be installed"
+              exit 1
+            fi
+            
+            if [[ -z "$SLACK_OAUTH_TOKEN" ]]; then
+              echo "This command requires SLACK_OAUTH_TOKEN to be set"
+              exit 1
+            fi
+            
+            if [[ \
+              ("<< parameters.get_slack_user_by >>" == "email" \
+              || "<< parameters.get_slack_user_by >>" ==  "meseeks") \
+            ]]; then
+            
+              if [[ -z "$GITHUB_PR_AUTHOR_EMAIL" && "<< parameters.get_slack_user_by >>" !=  "meseeks" ]]; then
+                echo "GITHUB_PR_AUTHOR_EMAIL not set or is empty string"
+                exit $EXIT_STATUS
+              fi
+            
+              SLACK_USER=$(curl \
+                -H 'Content-Type: application/x-www-form-urlencoded' \
+                -H 'Cache-Control: no-cache' \
+                -d "token=$SLACK_OAUTH_TOKEN" \
+                -d "email=$GITHUB_PR_AUTHOR_EMAIL" \
+                "https://slack.com/api/users.lookupByEmail")
+            
+              echo $SLACK_USER | jq .
+              SLACK_USER_ID=$(echo $SLACK_USER | jq '.user.id // empty' | tr -d '"')
+              echo "SLACK_USER_ID by email ($GITHUB_PR_AUTHOR_EMAIL): $SLACK_USER_ID"
+            fi
+            
+            if [[ \
+              ("<< parameters.get_slack_user_by >>" ==  "meseeks" \
+              || "<< parameters.get_slack_user_by >>" !=  "email") \
+              && -z "$SLACK_USER_ID" \
+            ]]; then
+               curl \
+                  -H 'Content-Type: application/x-www-form-urlencoded' \
+                  -H 'Cache-Control: no-cache' \
+                  -d "token=$SLACK_OAUTH_TOKEN" \
+                  "https://slack.com/api/users.list" > /tmp/slack-users.json
+            fi
+            
+            if [[ \
+              ("<< parameters.get_slack_user_by >>" == "display_name" \
+              || "<< parameters.get_slack_user_by >>" ==  "meseeks") \
+              && -z "$SLACK_USER_ID" \
+            ]]; then
+            
+              if [[ -z "$GITHUB_PR_AUTHOR_USERNAME"  && "<< parameters.get_slack_user_by >>" !=  "meseeks" ]]; then
+                echo "GITHUB_PR_AUTHOR_USERNAME not set or is empty string"
+                exit $EXIT_STATUS
+              fi
+            
+              SLACK_USER_ID=$(jq -r --arg u "$GITHUB_PR_AUTHOR_USERNAME" '.members | .[] | select(.profile.display_name == $u and .profile.display_name != "") | .id' /tmp/slack-users.json)
+              echo "SLACK_USER_ID by display_name ($GITHUB_PR_AUTHOR_USERNAME): $SLACK_USER_ID"
+            fi
+            
+            if [[ \
+              ("<< parameters.get_slack_user_by >>" == "real_name" \
+              || "<< parameters.get_slack_user_by >>" ==  "meseeks") \
+              && -z "$SLACK_USER_ID" \
+            ]]; then
+            
+              if [[ -z "$GITHUB_PR_AUTHOR_NAME"  && "<< parameters.get_slack_user_by >>" !=  "meseeks" ]]; then
+                echo "GITHUB_PR_AUTHOR_NAME not set or is empty string"
+                exit $EXIT_STATUS
+              fi
+            
+              SLACK_USER_ID=$(jq -r --arg u "$GITHUB_PR_AUTHOR_NAME" '.members | .[] | select(.profile.real_name == $u) | .id' /tmp/slack-users.json)
+              echo "SLACK_USER_ID by real_name ($GITHUB_PR_AUTHOR_NAME): $SLACK_USER_ID"
+            fi
+            
+            if [[ \
+              ("<< parameters.get_slack_user_by >>" == "title_tag" \
+              || "<< parameters.get_slack_user_by >>" ==  "meseeks") \
+              && -z "$SLACK_USER_ID" \
+            ]]; then
+            
+              if [[ -z "$GITHUB_PR_AUTHOR_USERNAME"  && "<< parameters.get_slack_user_by >>" !=  "meseeks" ]]; then
+                echo "GITHUB_PR_AUTHOR_USERNAME not set or is empty string"
+                exit $EXIT_STATUS
+              fi
+            
+              SLACK_TITLE_MATCH_STRING="\[gh:$GITHUB_PR_AUTHOR_USERNAME\]"
+              SLACK_USER_ID=$(jq -r --arg u "$SLACK_TITLE_MATCH_STRING" '.members | .[] | select(.profile.title | match($u)) | .id' /tmp/slack-users.json)
+              echo "SLACK_USER_ID by title_tag ($SLACK_TITLE_MATCH_STRING): $SLACK_USER_ID"
+            fi
+            
+            if [[ -z "$SLACK_USER_ID" ]]; then
+              echo "Unable to find Slack user by << parameters.get_slack_user_by >>"
+              exit $EXIT_STATUS
+            fi
+            
+            MESSAGE="*<< parameters.message >>*"
+            CHANNEL="$SLACK_USER_ID"
+            
+            if [[ -n "<< parameters.channel >>" ]]; then
+              MESSAGE="$MESSAGE\n<@$SLACK_USER_ID>"
+              CHANNEL="<< parameters.channel >>"
+            fi
+            
+            if [[ -z ${CIRCLECI_API_TOKEN+x} ]]; then
+              echo "CIRCLECI_API_TOKEN needs to be set to retrieve the workflow name"
+              WORKFLOW_TEXT=""
+            else
+              WORKFLOW_RESPONSE=$(curl "https://circleci.com/api/v2/workflow/$CIRCLE_WORKFLOW_ID?circle-token=$CIRCLECI_API_TOKEN")
+              echo $WORKFLOW_RESPONSE | jq .
+              WORKFLOW_NAME=$(echo $WORKFLOW_RESPONSE | jq -r '.name' | tr -d '"')
+              WORKFLOW_URL="https://circleci.com/workflow-run/$CIRCLE_WORKFLOW_ID"
+              WORKFLOW_TEXT="<$WORKFLOW_URL|$WORKFLOW_NAME>"
+            fi
+            
+            BLOCKS="[
+              {
+                \"type\": \"section\",
+                \"text\": {
+                  \"type\": \"mrkdwn\",
+                  \"text\": \"$MESSAGE\"
+                },
+              },
+              {
+                \"type\": \"section\",
+                \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Pull Request:* <$CIRCLE_PULL_REQUEST|$GITHUB_PR_TITLE>\"
+                }
+              },
+              {
+                \"type\": \"section\",
+                \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Job:* <$CIRCLE_BUILD_URL|$CIRCLE_JOB>\"
+                },
+              },
+              {
+                \"type\": \"section\",
+                \"text\": {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"*Workflow:* $WORKFLOW_TEXT\"
+                }
+              },
+              {
+                \"type\": \"context\",
+                \"elements\": [
+                  {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"Project: *$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME*\"
+                  },
+                  {
+                    \"type\": \"mrkdwn\",
+                    \"text\": \"Branch: *$CIRCLE_BRANCH*\"
+                  },
+                ]
+              }
+            ]"
+            
+            ATTACHMENTS="[
+              {
+                \"color\": \"<< parameters.color >>\",
+                \"blocks\": $BLOCKS
+              }
+            ]"
+            
+            CURL_ARGS=(
+              -X POST
+              -H 'Content-Type: application/x-www-form-urlencoded'
+              -H 'Cache-Control: no-cache'
+              -d "token=$SLACK_OAUTH_TOKEN"
+              -d 'as_user=true'
+              -d "channel=$CHANNEL"
+              -d "attachments=$ATTACHMENTS")
+            curl "${CURL_ARGS[@]}" "https://slack.com/api/chat.postMessage"
+          name: Slack PR author
+          when: << parameters.when >>
+description: |
+  Set of git utilities to manage GitHub Pull Requests in CI. This orb was created to address the need to simulate the result of merging the head branch into a PR's target base branch
+examples:
+  test-pull-request:
+    description: |
+      Run pull request tests on a temporary branch resulting from merging the PR's head branch into the base branch. Post a PR comment on test failure, but Slack the author on success.
+    usage:
+      jobs:
+        run-test:
+          machine: true
+          steps:
+            - ghpr/build-prospective-branch
+            - some-test-command
+            - ghpr/post-pr-comment:
+                comment: some message
+                when: on_fail
+            - ghpr/slack-pr-author:
+                color: '#1CBF43'
+                get_slack_user_by: meseeks
+                message: ':tada: Tests passed!'
+      orbs:
+        ghpr: narrativescience/ghpr@x.y.z
+      version: 2.1
+version: 2.1
+
