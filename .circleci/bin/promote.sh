@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 set -euo pipefail
-. submodules/lib/gcloud.sh
 
 ##Function extracted from \bin\deploy\deploy
 stop_previous_versions() {
