@@ -27,12 +27,12 @@ commands:
   promote:
     steps:
       - run:
-          command: project/.circleci/bin/promote.sh
+          command: ~/project/.circleci/bin/promote.sh
 
   revert:
     steps:
       - run:
-          command: project/.circleci/bin/revert.sh
+          command: ~/project/.circleci/bin/revert.sh
 
 jobs:
 
