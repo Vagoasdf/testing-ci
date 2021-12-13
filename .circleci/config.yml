@@ -154,6 +154,7 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - checkout
+      - git_configure
       - revert
       - unfreeze
 
