@@ -2,7 +2,7 @@
 
 noPromote=$(cat workspace/is-no-promote)
 
-if $noPromote ; then
+if $noPromote; then
 
   baseUrl="https://www.mergefreeze.com/api/branches/"
   ##Format: https://www.mergefreeze.com/api/branches/[Github account name]/[Github repository name]/[protected branch name]/?access_token=[Access token]
