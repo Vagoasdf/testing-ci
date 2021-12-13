@@ -155,6 +155,9 @@ jobs:
     steps:
       - checkout
       - git_configure
+      - add_ssh_keys:
+          fingerprint:
+            - b7:9d:17:5e:57:10:1b:ab:ad:d4:97:8d:1b:03:0a:ac
       - revert
       - unfreeze
 
