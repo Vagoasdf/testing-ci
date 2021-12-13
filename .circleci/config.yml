@@ -170,9 +170,7 @@ workflows:
             branches:
               only:
                 - main
-      - test-bash:
-          requires:
-            - freeze-no-promote
+      - test-bash
       - build:
           requires:
             - test-bash
@@ -195,6 +193,7 @@ workflows:
       - check-no-promote:
           requires:
             - deploy
+            - freeze-no-promote
           filters:
             branches:
               only:
