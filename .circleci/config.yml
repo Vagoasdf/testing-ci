@@ -125,10 +125,10 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: workspace
+          at: /tmp/workspace
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: cat ~project/workspace/is-no-promote
+          command: cat /tmp/workspace/is-no-promote
 
 
   promote:
@@ -138,7 +138,7 @@ jobs:
     steps:
       - checkout
       - attach_workspace:
-            at: workspace
+          at: /tmp/workspace
       - promote
       - unfreeze
 
