@@ -4,7 +4,7 @@
 
 ## Revert the previous merge
 currentCommit="$(git rev-parse )"
-git revert "$currentCommit" ## Check the merge stuf
+git revert "$currentCommit" -m1 ##  M1  = Continue on main branch
 ## DO NOT TRIGGER ANOTHER CircleCI Pipeline.
 git commit -m"[ci skip] Reverting the  No Promote Merge" --allow-empty
 ## Push the unmerged head to  master branch

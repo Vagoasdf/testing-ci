@@ -165,7 +165,11 @@ workflows:
   version: 2
   build-and-deploy:
     jobs:
-      - freeze-no-promote
+      - freeze-no-promote:
+          - filters:
+              branches:
+                only:
+                  - main
       - test-bash:
           requires:
             - freeze-no-promote
@@ -191,20 +195,40 @@ workflows:
       - check-no-promote:
           requires:
             - deploy
+          filters:
+            branches:
+              only:
+                - main
 
       - promote-hold:
           type: approval
           requires:
             - check-no-promote
+          filters:
+            branches:
+              only:
+                - main
 
       - revert-hold:
           type: approval
           requires:
             - check-no-promote
+          filters:
+            branches:
+              only:
+                - main
 
       - promote:
           requires:
             - promote-hold
+          filters:
+            branches:
+              only:
+                - main
       - revert:
           requires:
             - revert-hold
+          filters:
+            branches:
+              only:
+                - main
