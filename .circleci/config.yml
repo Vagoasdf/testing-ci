@@ -24,6 +24,13 @@ commands:
       - run:
           command: .circleci/bin/get_pr_promote.sh
 
+  git_configure:
+    steps:
+      - run:
+          name: Configure Git
+          command: .circleci/bin/configure.sh
+
+
   promote:
     steps:
       - run:
