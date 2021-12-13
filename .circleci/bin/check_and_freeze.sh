@@ -10,6 +10,6 @@ if [ "$noPromote" ]; then
   finalURL="$baseUrl$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH/?access_token=$GITHUB_TOKEN"
 
   echo "Merge Freeze in action"
-  echo $finalURL
+  echo "$finalURL"
   curl --data "frozen=true & user_name=circleci" "$finalURL"
 fi

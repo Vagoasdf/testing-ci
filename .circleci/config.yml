@@ -27,12 +27,12 @@ commands:
   promote:
     steps:
       - run:
-          command: .circleci/bin/promote.sh
+          command: project/.circleci/bin/promote.sh
 
   revert:
     steps:
       - run:
-          command: .circleci/bin/revert.sh
+          command: project/.circleci/bin/revert.sh
 
 jobs:
 
@@ -128,7 +128,7 @@ jobs:
           at: workspace
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo $(workspace/is-no-promote)
+          command: cat ~project/workspace/is-no-promote
 
 
   promote:
