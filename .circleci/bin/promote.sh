@@ -7,8 +7,8 @@ stop_previous_versions() {
     echo "Stopping all previous serving versions of $1"
 }
 
-service= $(cat /tmp/workspace/version_name)
-version_name= $(cat /tmp/workspace/service)
+service= $(cat workspace/version_name)
+version_name= $(cat workspace/service)
 
 echo ""
 echo "Split traffic to" "$version_name"

@@ -10,7 +10,7 @@ if [ "$commitTitleTag" = "No Promote" ] ||
   [ "$commitTitleTag" = "No promote" ] ||
   [ "$commitTitleTag" = "no Promote" ]; then
 
-  echo True > is-no-promote
+  echo True > workspace/is-no-promote
 else
-  echo False > is-no-promote
+  echo False > workspace/is-no-promote
 fi

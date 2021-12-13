@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-noPromote=$(cat is-no-promote)
+noPromote=$(cat workspace/is-no-promote)
 
 if [ "$noPromote" ]; then
 

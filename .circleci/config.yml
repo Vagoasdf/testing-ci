@@ -46,7 +46,7 @@ jobs:
       - freeze_if_nopromote
 
       - persist_to_workspace:
-          root: .
+          root: workspace
           paths:
             - is-no-promote
 
@@ -125,10 +125,10 @@ jobs:
       - image: cimg/php:8.0.13
     steps:
       - attach_workspace:
-          at: /tmp/workspace
+          at: workspace
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo $(/tmp/workspace/is-no-promote)
+          command: echo $(workspace/is-no-promote)
 
 
   promote:
@@ -136,9 +136,9 @@ jobs:
     docker:
       - image: cimg/php:8.0.13
     steps:
-      - attach_workspace:
-          at: /tmp/workspace
       - checkout
+      - attach_workspace:
+            at: workspace
       - promote
       - unfreeze
 
