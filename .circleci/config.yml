@@ -135,7 +135,12 @@ jobs:
           at: /tmp/workspace
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: cat /tmp/workspace/is-no-promote
+          command: |
+            noPromote=$(cat /tmp/workspace/is-no-promote)
+            if [ "$noPromote" == false ]; then
+              echo "Commit does not have the No promote tag. Halting downstreamn jobs"
+              .circleci/bin/halt.sh
+            fi
 
 
   promote:

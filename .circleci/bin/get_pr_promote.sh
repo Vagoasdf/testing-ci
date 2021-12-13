@@ -14,3 +14,4 @@ if [ "$commitTitleTag" = "No Promote" ] ||
 else
   echo false > workspace/is-no-promote
 fi
+
