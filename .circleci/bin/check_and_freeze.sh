@@ -1,15 +1,14 @@
 #!/usr/bin/env bash
 
-noPromote=$(cat workspace/is-no-promote)
+echo $GITHUB_PR_TITLE
 
-if [ "$noPromote" ]; then
+PRTag=$(echo $GITHUB_PR_TITLE | cut -d '[' -f2 | cut -d ']' -f1)
+echo $PRTag
 
-  baseUrl="https://www.mergefreeze.com/api/branches/"
-  ##Format: https://www.mergefreeze.com/api/branches/[Github account name]/[Github repository name]/[protected branch name]/?access_token=[Access token]
-
-  finalURL="$baseUrl$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME/$CIRCLE_BRANCH/?access_token=$GITHUB_TOKEN"
-
-  echo "Merge Freeze in action"
-  echo "$finalURL"
-  curl --data "frozen=true & user_name=circleci" "$finalURL"
+if [ "$PRTag" = "No Promote" ] ||
+  [ "$PRTag" = "no promote" ] ||
+  [ "$PRTag" = "no Promote" ] ||
+  [ "$PRTag" = "No promote"  ]; then
+  echo "No promote"
 fi
+
