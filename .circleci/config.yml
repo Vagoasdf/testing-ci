@@ -166,10 +166,10 @@ workflows:
   build-and-deploy:
     jobs:
       - freeze-no-promote:
-          - filters:
-              branches:
-                only:
-                  - main
+          filters:
+            branches:
+              only:
+                - main
       - test-bash:
           requires:
             - freeze-no-promote
