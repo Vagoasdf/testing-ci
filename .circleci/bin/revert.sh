@@ -10,4 +10,4 @@ git commit -m"[ci skip] Reverting the  No Promote Merge" --allow-empty
 ## Push the unmerged head to  master branch
 git push --set-upstream origin "$CIRCLE_BRANCH"
 
-#### Edge Case >> If a bot pushes something on top.
+##TODO: Edge case
