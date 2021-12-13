@@ -131,6 +131,7 @@ jobs:
     docker:
       - image: cimg/php:8.0.13
     steps:
+      - checkout
       - attach_workspace:
           at: /tmp/workspace
       - run:
@@ -139,7 +140,7 @@ jobs:
             noPromote=$(cat /tmp/workspace/is-no-promote)
             if [ "$noPromote" == false ]; then
               echo "Commit does not have the No promote tag. Halting downstreamn jobs"
-              .circleci/bin/halt.sh
+              .circleci/bin/halth.sh
             fi
 
 
