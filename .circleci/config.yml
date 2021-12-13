@@ -7,52 +7,65 @@ commands:
           name: placefolder for holding submodules
           command: echo "submodules initialized successfully"
 
+  unfreeze:
+    steps:
+      - run:
+          name : Unfreezes
+          command: echo "Unfreezing Merge"
+
   freeze_if_nopromote:
     steps:
       - run:
           name:  If its tagged No Promote we Freeze this.
           command: .circleci/bin/check_and_freeze.sh
 
-  get_pr_title:
+  get_pr_promote:
     steps:
       - run:
-          command: |
+          command: .circleci/bin/get_pr_promote.sh
 
-            PR_NUMBER=$(echo "$CIRCLE_PULL_REQUEST" | sed "s/.*\/pull\///")
-            echo "PR_NUMBER: $PR_NUMBER"
-            echo "CircleCI PR Number: $CIRCLE_PR_NUMBER"	
-            echo "export GITHUB_PR_NUMBER=$PR_NUMBER" >> $BASH_ENV
-            
-            API_GITHUB="https://api.github.com/repos/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME"
-            PR_REQUEST_URL="$API_GITHUB/pulls/$PR_NUMBER"
-            
-            PR_RESPONSE=$(curl -H "Authorization: token $GITHUB_TOKEN" "$PR_REQUEST_URL")
-            PR_TITLE=$(echo $PR_RESPONSE | jq -e '.title' | tr -d '"')
+  git_configure:
+    steps:
+      - run:
+          name: Configure Git
+          command: .circleci/bin/configure.sh
 
-            echo "PR_TITLE: $PR_TITLE"
 
-            echo "export GITHUB_PR_TITLE='${PR_TITLE/"'"/}'" >> $BASH_ENV
+  promote:
+    steps:
+      - run:
+          command: ~/project/.circleci/bin/promote.sh
+
+  revert:
+    steps:
+      - run:
+          command: ~/project/.circleci/bin/revert.sh
 
 jobs:
+
   freeze-no-promote:
     docker:
       - image: cimg/php:8.0.13
     steps:
       - checkout
-      - run:
-          name: Rebase to main
-          command: |
-            git fetch origin
-            git merge origin/main --no-edit
       - git_submodule_init
-      - get_pr_title
+      - get_pr_promote
       - freeze_if_nopromote
+
+      - persist_to_workspace:
+          root: workspace
+          paths:
+            - is-no-promote
 
   test-bash:
     parallelism: 1
     docker:
       - image: cimg/php:8.0.13
     steps:
+      - checkout
+      - git_submodule_init
+      - get_pr_promote
+      - freeze_if_nopromote
       - run:
           name: Run bash tests
           command: echo "Bash Working OK"
@@ -64,7 +77,15 @@ jobs:
     steps:
       - run:
           name: Build the app
-          command: echo "app built! OK"
+          command: echo "12345" > version_name
+      - run:
+          name: Send a service
+          command: echo "servo" > service
+      - persist_to_workspace:
+          root: .
+          paths:
+            - version_name
+            - service
 
   static_analysis:
     docker:
@@ -110,34 +131,35 @@ jobs:
     docker:
       - image: cimg/php:8.0.13
     steps:
+      - attach_workspace:
+          at: /tmp/workspace
       - run:
           name: Checks if the PR has the No Prmote tag
-          command: echo "Are you promoted?"
+          command: cat /tmp/workspace/is-no-promote
+
 
   promote:
+
     docker:
       - image: cimg/php:8.0.13
     steps:
-      - run:
-          name: Promotes the app to the main site
-          command: echo "Promoted!"
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - promote
+      - unfreeze
 
   revert:
     docker:
       - image: cimg/php:8.0.13
     steps:
-      - run:
-          name: Reverts the current commit
-          command: echo "Promoted!"
-
-  unfreeze:
-    docker:
-      - image: cimg/php:8.0.13
-    steps:
-      - run:
-          name: Unfreezes the Merge
-          command: echo "Unfreezing Merge!"
-
+      - checkout
+      - git_configure
+      - add_ssh_keys:
+          fingerprint:
+            - b7:9d:17:5e:57:10:1b:ab:ad:d4:97:8d:1b:03:0a:ac
+      - revert
+      - unfreeze
 
 workflows:
   version: 2
@@ -186,9 +208,3 @@ workflows:
       - revert:
           requires:
             - revert-hold
-      - unfreeze:
-          requires:
-            - promote
-      - unfreeze:
-          requires:
-            - revert
