@@ -145,7 +145,6 @@ jobs:
 
 
   promote:
-
     docker:
       - image: cimg/php:8.0.13
     steps:
@@ -172,6 +171,8 @@ workflows:
   build-and-deploy:
     jobs:
       - freeze-no-promote:
+          context:
+            - MERGEFREEZE_ACCESS_TOKEN
           filters:
             branches:
               only:
@@ -224,6 +225,8 @@ workflows:
                 - main
 
       - promote:
+          context:
+            - MERGEFREEZE_ACCESS_TOKEN
           requires:
             - promote-hold
           filters:
@@ -231,6 +234,8 @@ workflows:
               only:
                 - main
       - revert:
+          context:
+            - MERGEFREEZE_ACCESS_TOKEN
           requires:
             - revert-hold
           filters:
