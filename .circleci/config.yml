@@ -1,4 +1,9 @@
 version: 2.1
+executors:
+  base:
+    docker:
+      - image: cimg/base:2021.04
+    working_directory: /tmp/stdcheck.com
 
 commands:
   git_submodule_init:
@@ -41,11 +46,23 @@ commands:
       - run:
           command: ~/project/.circleci/bin/revert.sh
 
+  halt-no-promote:
+    description: Halts the current job and downstream jobs if its a no promote commit.
+    steps:
+      - run:
+          name: Checking if the commit is "No promote". Halting if thats the case
+          command: |
+            if $(cat is-no-promote); then
+              echo "Commit has the No Promote tag. Halting downstreamn jobs"
+              submodules/bin/circleci/halt.sh
+            fi
+
+    
+
 jobs:
 
   freeze-no-promote:
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - checkout
       - git_submodule_init
@@ -59,8 +76,7 @@ jobs:
 
   test-bash:
     parallelism: 1
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - checkout
       - git_submodule_init
@@ -72,8 +88,7 @@ jobs:
 
   build:
     parallelism: 1
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - run:
           name: Build the app
@@ -88,48 +103,56 @@ jobs:
             - service
 
   static_analysis:
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - run:
           name: Run static analysis tests
           command: echo " Static Analized"
 
   standarts_enforcing:
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - run:
           name: Run the standart enforcing tests
           command: echo "standarts enforced"
 
   test-integration:
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - run:
           name: Run the integration tests
           command: echo "Integration tested"
 
   deploy:
-    docker:
-      - image: cimg/php:8.0.13
+    parameters:
+      skip_no_promote:
+        type: boolean
+    executor: base
     steps:
+      - when:
+            condition: <<parameters.skip_no_promote>>
+            steps:
+              - halt-no-promote
       - run:
           name: Deploys the App in the site
           command: echo "App Deployed Oh Damn"
 
   other-deploy:
-    docker:
-      - image: cimg/php:8.0.13
+    parameters:
+      skip_no_promote:
+        type: boolean
+    executor: base
     steps:
+      - when:
+          condition: <<parameters.skip_no_promote>>
+          steps:
+            - halt-no-promote
       - run:
           name: Deploys something else
           command: echo "Deployed something that does not break the app"
 
   check-no-promote:
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - checkout
       - attach_workspace:
@@ -145,8 +168,7 @@ jobs:
 
 
   promote:
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - checkout
       - attach_workspace:
@@ -155,8 +177,7 @@ jobs:
       - unfreeze
 
   revert:
-    docker:
-      - image: cimg/php:8.0.13
+    executor: base
     steps:
       - checkout
       - git_configure
@@ -192,9 +213,11 @@ workflows:
             - static_analysis
             - standarts_enforcing
       - deploy:
+          skip_no_promote: true
           requires:
             - build
       - other-deploy:
+          skip_no_promote: true
           requires:
             - build
       - check-no-promote:
@@ -215,15 +238,6 @@ workflows:
               only:
                 - main
 
-      - revert-hold:
-          type: approval
-          requires:
-            - check-no-promote
-          filters:
-            branches:
-              only:
-                - main
-
       - promote:
           context:
             - MERGEFREEZE_ACCESS_TOKEN
@@ -233,12 +247,8 @@ workflows:
             branches:
               only:
                 - main
-      - revert:
-          context:
-            - MERGEFREEZE_ACCESS_TOKEN
+
+      - other-deploy:
+          skip_no_promote: false
           requires:
-            - revert-hold
-          filters:
-            branches:
-              only:
-                - main
+            - promote-hold
