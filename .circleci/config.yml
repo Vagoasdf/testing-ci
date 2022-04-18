@@ -32,10 +32,7 @@ jobs:
       -  git_check_no_promote
       - run:
           name: Checks if the PR has the No promote tag. Halts downstream jobs if not the case
-          command: |
-            if  [ "$(cat is-no-promote)" = false ];then
-              echo "Commit does not have the No promote tag. Halting downstream jobs"
-            fi
+          command: cat is-no-promote
 
 workflows:
   version: 2
