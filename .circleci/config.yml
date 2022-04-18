@@ -1,4 +1,11 @@
 version: 2.1
+
+#Warns Circleci that setup is going to happen
+setup: true
+
+orbs:
+  continuation: circleci/continuation@0.1.2
+
 executors:
   base:
     docker:
@@ -6,150 +13,12 @@ executors:
     working_directory: /tmp/stdcheck.com
 
 commands:
-  git_submodule_init:
-    steps:
-      - run:
-          name: placefolder for holding submodules
-          command: echo "submodules initialized successfully"
-
-  unfreeze:
-    steps:
-      - run:
-          name : Unfreezes
-          command: echo "Unfreezing Merge"
-
-  freeze_if_nopromote:
-    steps:
-      - run:
-          name:  If its tagged No Promote we Freeze this.
-          command: .circleci/bin/check_and_freeze.sh
 
   get_pr_promote:
     steps:
       - run:
           command: .circleci/bin/get_pr_promote.sh
-
-  git_configure:
-    steps:
-      - run:
-          name: Configure Git
-          command: .circleci/bin/configure.sh
-
-
-  promote:
-    steps:
-      - run:
-          command: ~/project/.circleci/bin/promote.sh
-
-  revert:
-    steps:
-      - run:
-          command: ~/project/.circleci/bin/revert.sh
-
-  halt-no-promote:
-    description: Halts the current job and downstream jobs if its a no promote commit.
-    steps:
-      - run:
-          name: Checking if the commit is "No promote". Halting if thats the case
-          command: |
-            if $(cat is-no-promote); then
-              echo "Commit has the No Promote tag. Halting downstreamn jobs"
-              submodules/bin/circleci/halt.sh
-            fi
-
-    
-
 jobs:
-
-  freeze-no-promote:
-    executor: base
-    steps:
-      - checkout
-      - git_submodule_init
-      - get_pr_promote
-      - freeze_if_nopromote
-
-      - persist_to_workspace:
-          root: workspace
-          paths:
-            - is-no-promote
-
-  test-bash:
-    parallelism: 1
-    executor: base
-    steps:
-      - checkout
-      - git_submodule_init
-      - get_pr_promote
-      - freeze_if_nopromote
-      - run:
-          name: Run bash tests
-          command: echo "Bash Working OK"
-
-  build:
-    parallelism: 1
-    executor: base
-    steps:
-      - run:
-          name: Build the app
-          command: echo "12345" > version_name
-      - run:
-          name: Send a service
-          command: echo "servo" > service
-      - persist_to_workspace:
-          root: .
-          paths:
-            - version_name
-            - service
-
-  static_analysis:
-    executor: base
-    steps:
-      - run:
-          name: Run static analysis tests
-          command: echo " Static Analized"
-
-  standarts_enforcing:
-    executor: base
-    steps:
-      - run:
-          name: Run the standart enforcing tests
-          command: echo "standarts enforced"
-
-  test-integration:
-    executor: base
-    steps:
-      - run:
-          name: Run the integration tests
-          command: echo "Integration tested"
-
-  deploy:
-    parameters:
-      skip_no_promote:
-        type: boolean
-    executor: base
-    steps:
-      - when:
-            condition: <<parameters.skip_no_promote>>
-            steps:
-              - halt-no-promote
-      - run:
-          name: Deploys the App in the site
-          command: echo "App Deployed Oh Damn"
-
-  other-deploy:
-    parameters:
-      skip_no_promote:
-        type: boolean
-    executor: base
-    steps:
-      - when:
-          condition: <<parameters.skip_no_promote>>
-          steps:
-            - halt-no-promote
-      - run:
-          name: Deploys something else
-          command: echo "Deployed something that does not break the app"
 
   check-no-promote:
     executor: base
@@ -166,89 +35,12 @@ jobs:
               .circleci/bin/halth.sh
             fi
 
-
-  promote:
-    executor: base
-    steps:
-      - checkout
-      - attach_workspace:
-          at: /tmp/workspace
-      - promote
-      - unfreeze
-
-  revert:
-    executor: base
-    steps:
-      - checkout
-      - git_configure
-      - add_ssh_keys:
-          fingerprint:
-            - b7:9d:17:5e:57:10:1b:ab:ad:d4:97:8d:1b:03:0a:ac
-      - revert
-      - unfreeze
-
 workflows:
   version: 2
-  build-and-deploy:
-    jobs:
-      - freeze-no-promote:
-          context:
-            - MERGEFREEZE_ACCESS_TOKEN
-          filters:
-            branches:
-              only:
-                - main
-      - test-bash
-      - build:
-          requires:
-            - test-bash
-      - static_analysis:
-          requires:
-            - build
-      - standarts_enforcing:
-          requires:
-            - build
-      - test-integration:
-          requires:
-            - static_analysis
-            - standarts_enforcing
-      - deploy:
-          skip_no_promote: true
-          requires:
-            - build
-      - other-deploy:
-          skip_no_promote: true
-          requires:
-            - build
-      - check-no-promote:
-          requires:
-            - deploy
-            - freeze-no-promote
-          filters:
-            branches:
-              only:
-                - main
 
-      - promote-hold:
-          type: approval
-          requires:
-            - check-no-promote
-          filters:
-            branches:
-              only:
-                - main
-
-      - promote:
-          context:
-            - MERGEFREEZE_ACCESS_TOKEN
-          requires:
-            - promote-hold
-          filters:
-            branches:
-              only:
-                - main
-
-      - other-deploy:
-          skip_no_promote: false
-          requires:
-            - promote-hold
+  setup:
+    executor: continuation/default
+    steps:
+      - checkout;
+      - check-no-promote;
+        

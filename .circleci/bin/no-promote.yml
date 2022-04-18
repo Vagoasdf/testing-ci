@@ -1,0 +1,176 @@
+version: 2.1
+
+executors:
+  base:
+    docker:
+      - image: cimg/base:2021.04
+    working_directory: /tmp/stdcheck.com
+
+commands:
+  git_submodule_init:
+    steps:
+      - run:
+          name: placefolder for holding submodules
+          command: echo "submodules initialized successfully"
+
+  unfreeze:
+    steps:
+      - run:
+          name : Unfreezes
+          command: echo "Unfreezing Merge"
+
+  freeze:
+    steps:
+      - run:
+          name:  If its tagged No Promote we Freeze this.
+          command: .circleci/bin/check_and_freeze.sh
+
+  git_configure:
+    steps:
+      - run:
+          name: Configure Git
+          command: .circleci/bin/configure.sh
+
+  promote:
+    steps:
+      - run:
+          command: ~/project/.circleci/bin/promote.sh
+
+  revert:
+    steps:
+      - run:
+          command: ~/project/.circleci/bin/revert.sh
+
+  halt-no-promote:
+    description: Halts the current job and downstream jobs if its a no promote commit.
+    steps:
+      - run:
+          name: Checking if the commit is "No promote". Halting if thats the case
+          command: |
+            if $(cat is-no-promote); then
+              echo "Commit has the No Promote tag. Halting downstreamn jobs"
+              submodules/bin/circleci/halt.sh
+            fi
+
+jobs:
+
+  freeze-no-promote:
+    executor: base
+    steps:
+      - checkout
+      - git_submodule_init
+      - freeze_if_nopromote
+
+  test-bash:
+    parallelism: 1
+    executor: base
+    steps:
+      - checkout
+      - git_submodule_init
+      - run:
+          name: Run bash tests
+          command: echo "Bash Working OK"
+
+  build:
+    parallelism: 1
+    executor: base
+    steps:
+      - run:
+          name: Build the app
+          command: echo "12345" > version_name
+      - run:
+          name: Send a service
+          command: echo "servo" > service
+      - persist_to_workspace:
+          root: .
+          paths:
+            - version_name
+            - service
+
+  static_analysis:
+    executor: base
+    steps:
+      - run:
+          name: Run static analysis tests
+          command: echo " Static Analized"
+
+  standarts_enforcing:
+    executor: base
+    steps:
+      - run:
+          name: Run the standart enforcing tests
+          command: echo "standarts enforced"
+
+  test-integration:
+    executor: base
+    steps:
+      - run:
+          name: Run the integration tests
+          command: echo "Integration tested"
+
+  deploy-no-promote:
+    executor: base
+    steps:
+      - run:
+          name: Deploys the App in the site
+          command: echo "App Deployed Oh Damn"
+
+  promote:
+    executor: base
+    steps:
+      - checkout
+      - attach_workspace:
+          at: /tmp/workspace
+      - promote
+      - unfreeze
+
+workflows:
+  version: 2
+
+  build-and-deploy:
+    jobs:
+      - freeze-no-promote:
+          context:
+            - MERGEFREEZE_ACCESS_TOKEN
+          filters:
+            branches:
+              only:
+                - main
+      - test-bash
+      - build:
+          requires:
+            - test-bash
+      - static_analysis:
+          requires:
+            - build
+      - standarts_enforcing:
+          requires:
+            - build
+      - test-integration:
+          requires:
+            - static_analysis
+            - standarts_enforcing
+      - deploy:
+          requires:
+            - build
+      - other-deploy:
+          requires:
+            - build
+      - promote-hold:
+          type: approval
+          requires:
+            - deploy
+            - other-deploy
+          filters:
+            branches:
+              only:
+                - main
+      - promote:
+          context:
+            - MERGEFREEZE_ACCESS_TOKEN
+          requires:
+            - promote-hold
+          filters:
+            branches:
+              only:
+                - main

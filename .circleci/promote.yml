@@ -1,0 +1,108 @@
+version: 2.1
+
+executors:
+  base:
+    docker:
+      - image: cimg/base:2021.04
+    working_directory: /tmp/stdcheck.com
+
+commands:
+  git_submodule_init:
+    steps:
+      - run:
+          name: placefolder for holding submodules
+          command: echo "submodules initialized successfully"
+
+  git_configure:
+    steps:
+      - run:
+          name: Configure Git
+          command: .circleci/bin/configure.sh
+
+jobs:
+
+  test-bash:
+    parallelism: 1
+    executor: base
+    steps:
+      - checkout
+      - git_submodule_init
+      - get_pr_promote
+      - freeze_if_nopromote
+      - run:
+          name: Run bash tests
+          command: echo "Bash Working OK"
+
+  build:
+    parallelism: 1
+    executor: base
+    steps:
+      - run:
+          name: Build the app
+          command: echo "12345" > version_name
+      - run:
+          name: Send a service
+          command: echo "servo" > service
+      - persist_to_workspace:
+          root: .
+          paths:
+            - version_name
+            - service
+
+  static_analysis:
+    executor: base
+    steps:
+      - run:
+          name: Run static analysis tests
+          command: echo " Static Analized"
+
+  standarts_enforcing:
+    executor: base
+    steps:
+      - run:
+          name: Run the standart enforcing tests
+          command: echo "standarts enforced"
+
+  test-integration:
+    executor: base
+    steps:
+      - run:
+          name: Run the integration tests
+          command: echo "Integration tested"
+
+  deploy:
+    executor: base
+    steps:
+      - run:
+          name: Deploys the App in the site
+          command: echo "App Deployed Oh Damn"
+
+  other-deploy:
+    executor: base
+    steps:
+      - run:
+          name: Deploys something else
+          command: echo "Deployed something that does not break the app"
+
+workflows:
+  version: 2
+
+  build-and-deploy:
+    jobs:
+      - test-bash
+      - build:
+          requires:
+            - test-bash
+      - static_analysis:
+          requires:
+            - build
+      - standarts_enforcing:
+          requires:
+            - build
+      - test-integration:
+          requires:
+            - static_analysis
+            - standarts_enforcing
+      - deploy:
+          requires:
+            - build
