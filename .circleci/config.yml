@@ -13,34 +13,24 @@ executors:
     working_directory: /tmp/stdcheck.com
 
 commands:
-
-  get_pr_promote:
+  git_check_no_promote:
+    description: Checks if the commit contains the "No promote" tag, and writes the result to the file ./is-no-promote.
     steps:
       - run:
-          command: .circleci/bin/get_pr_promote.sh
-jobs:
+          name: Check "No Promote" Tag
+          command: .circleci/bin/git/check-no-promote.sh
 
+jobs:
   check-no-promote:
     executor: base
     steps:
       - checkout
       - attach_workspace:
           at: /tmp/workspace
-      - run:
-          name: Checks if the PR has the No Prmote tag
-          command: |
-            noPromote=$(cat /tmp/workspace/is-no-promote)
-            if [ "$noPromote" == false ]; then
-              echo "Commit does not have the No promote tag. Halting downstreamn jobs"
-              .circleci/bin/halth.sh
-            fi
+      -  git_check_no_promote
 
 workflows:
   version: 2
-
   setup:
-    executor: continuation/default
-    steps:
-      - checkout;
-      - check-no-promote;
-        
+    jobs:
+      - check-no-promote
