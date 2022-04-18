@@ -1,5 +1,9 @@
 version: 2.1
 
+parameters:
+  no-promote:
+    type: boolean
+    default: false
 #Warns Circleci that setup is going to happen
 setup: true
 
@@ -25,9 +29,13 @@ jobs:
     executor: base
     steps:
       - checkout
-      - attach_workspace:
-          at: /tmp/workspace
       -  git_check_no_promote
+      - run:
+          name: Checks if the PR has the No promote tag. Halts downstream jobs if not the case
+          command: |
+            if  [ "$(cat is-no-promote)" = false ];then
+              echo "Commit does not have the No promote tag. Halting downstream jobs"
+            fi
 
 workflows:
   version: 2
