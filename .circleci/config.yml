@@ -24,6 +24,19 @@ commands:
           name: Check "No Promote" Tag
           command: .circleci/bin/git/check-no-promote.sh
 
+  continue-promote:
+    description: Continues with the Promote Workflow
+    steps:
+      - continuation/continue:
+          configuration_path: promote.yml # use newly generated config to continue
+
+  continue-no-promote:
+    description: Continues with the No Promote Workflow
+    steps:
+      - continuation/continue:
+          configuration_path: no-promote.yml # use newly generated config to continue
+
+
 jobs:
   check-no-promote:
     executor: base
@@ -33,6 +46,15 @@ jobs:
       - run:
           name: Checks if the PR has the No promote tag. Halts downstream jobs if not the case
           command: cat is-no-promote
+      when:
+        condition: true
+        steps:
+          - run: echo "Esto deberia imprimirse"
+      when:
+        condition: false
+        steps:
+          - run: echo "Esto no  deberia imprimirse"
+
 
 workflows:
   version: 2
