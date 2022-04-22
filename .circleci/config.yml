@@ -1,9 +1,5 @@
 version: 2.1
 
-parameters:
-  no-promote:
-    type: boolean
-    default: false
 #Warns Circleci that setup is going to happen
 setup: true
 
@@ -24,40 +20,39 @@ commands:
           name: Check "No Promote" Tag
           command: .circleci/bin/git/check-no-promote.sh
 
-  continue-promote:
-    description: Continues with the Promote Workflow
+  greeting:
+    parameters:
+      to:
+        default: "world"
+        type: string
     steps:
-      - continuation/continue:
-          configuration_path: promote.yml # use newly generated config to continue
-
-  continue-no-promote:
-    description: Continues with the No Promote Workflow
-    steps:
-      - continuation/continue:
-          configuration_path: no-promote.yml # use newly generated config to continue
+      - run: echo "Hello <<parameters.to>>"
 
 
 jobs:
-  check-no-promote:
+
+  select-workflow:
     executor: base
+    parameters:
+      is-no-promote:
+        type: env_var_name
+        default: NO_PROMOTE
     steps:
       - checkout
       -  git_check_no_promote
       - run:
-          name: Checks if the PR has the No promote tag. Halts downstream jobs if not the case
-          command: cat is-no-promote
-      when:
-        condition: true
-        steps:
-          - run: echo "Esto deberia imprimirse"
-      when:
-        condition: false
-        steps:
-          - run: echo "Esto no  deberia imprimirse"
+          name: Checks if the PR has the No promote tag.
+          command: |
+            cat is-no-promote
+            echo "export NO_PROMOTE=cat is-no-promote" >> $BASH_ENV
+      - greeting:
+          to: ${<< parameters.is-no-promote >>}
+      - continuation/continue:
+          configuration_path: continue.yml
 
 
 workflows:
   version: 2
   setup:
     jobs:
-      - check-no-promote
+      - select-workflow
