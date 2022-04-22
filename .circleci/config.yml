@@ -49,7 +49,7 @@ jobs:
           to: ${<< parameters.is-no-promote >>}
       - continuation/continue:
           configuration_path: .circleci/continue.yml
-          parameters: {"is-no-promote" : << parameters.is-no-promote>>}
+          parameters: {"is-no-promote" : ${<< parameters.is-no-promote >>}}
 
 
 workflows:
