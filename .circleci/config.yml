@@ -39,7 +39,7 @@ jobs:
         default: NO_PROMOTE
     steps:
       - checkout
-      -  git_check_no_promote
+      - git_check_no_promote
       - run:
           name: Checks if the PR has the No promote tag.
           command: |
