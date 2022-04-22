@@ -44,11 +44,11 @@ jobs:
           name: Checks if the PR has the No promote tag.
           command: |
             cat is-no-promote
-            echo "export NO_PROMOTE=cat is-no-promote" >> $BASH_ENV
+            echo "export NO_PROMOTE=$(cat is-no-promote)" >> $BASH_ENV
       - greeting:
           to: ${<< parameters.is-no-promote >>}
       - continuation/continue:
-          configuration_path: continue.yml
+          configuration_path: .circleci/continue.yml
 
 
 workflows:
