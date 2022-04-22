@@ -26,24 +26,22 @@ workflows:
       - no-promote
 
 
-
-
 jobs:
   promote:
     executor: base
     steps:
       - checkout
-      - run :
-        name: Notice we are on Promote
-        command : echo "Promote!"
+      - run:
+          name: Checks if the PR has the No promote tag.
+          command: echo "Promote!"
 
   no-promote:
     executor: base
     steps:
       - checkout
       - run :
-        name: Notice we are on No Promote
-        command : echo "No Promote!"
+          name: Notice we are on No Promote
+          command : echo "No Promote!"
 
 
 
