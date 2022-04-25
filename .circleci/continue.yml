@@ -13,14 +13,23 @@ executors:
 
 workflows:
   version: 2
+  normal-workflow:
+    jobs:
+      - promote
+
   no-promote-workflow:
-    when: << pipeline.parameters.is-no-promote >>
+    when:
+      and:
+        - << pipeline.parameters.is-no-promote >>
+        - equal: [ master, << pipeline.git.branch >> ]
     jobs:
       - no-promote
 
   promote-workflow:
     when:
-      not: << pipeline.parameters.is-no-promote >>
+      and:
+        - not: << pipeline.parameters.is-no-promote >>
+        - equal: [ main, << pipeline.git.branch >> ]
     jobs:
       - promote
 

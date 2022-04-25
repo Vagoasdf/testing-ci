@@ -10,7 +10,7 @@ executors:
   base:
     docker:
       - image: cimg/base:2021.04
-    working_directory: /tmp/stdcheck.com
+    working_directory: /tmp/setup
 
 commands:
   git_check_no_promote:
@@ -23,17 +23,7 @@ commands:
           name: check it was saved correctly
           command: cat is-no-promote
 
-  greeting:
-    parameters:
-      to:
-        default: "world"
-        type: string
-    steps:
-      - run: echo "Hello <<parameters.to>>"
-
-
 jobs:
-
   select-workflow:
     executor: base
     steps:
@@ -45,8 +35,6 @@ jobs:
       - continuation/continue:
           configuration_path: .circleci/continue.yml
           parameters: test.json
-
-
 
 workflows:
   version: 2
