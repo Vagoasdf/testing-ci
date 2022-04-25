@@ -43,8 +43,7 @@ jobs:
             echo "export NO_PROMOTE=$(cat is-no-promote)" >> $BASH_ENV
       - run:
           name: Creates parameters in a json file to pass to the next orb
-          command: |
-            echo '{ "is-no-promote": "'$NO_PROMOTE'" }' >> test.json
+          command: .circleci/bin/buildJson.sh
       - continuation/continue:
           configuration_path: .circleci/continue.yml
           parameters: test.json

@@ -1,0 +1,4 @@
+{ "is-no-promote": "" }
+{ "is-no-promote": "false" }
+{ "is-no-promote": " \" false \" " }
+{ "is-no-promote": " false " }
