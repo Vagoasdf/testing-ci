@@ -19,6 +19,9 @@ commands:
       - run:
           name: Check "No Promote" Tag
           command: .circleci/bin/git/check-no-promote.sh
+      - run:
+          name: check it was saved correctly
+          command: cat is-no-promote
 
   greeting:
     parameters:
@@ -36,11 +39,6 @@ jobs:
     steps:
       - checkout
       - git_check_no_promote
-      - run:
-          name: Saves the No promote value to an Bash Env Variable
-          command: |
-            cat is-no-promote
-            echo "export NO_PROMOTE=$(cat is-no-promote)" >> $BASH_ENV
       - run:
           name: Creates parameters in a json file to pass to the next orb
           command: .circleci/bin/buildJson.sh
