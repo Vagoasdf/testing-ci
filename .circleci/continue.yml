@@ -14,6 +14,9 @@ executors:
 workflows:
   version: 2
   normal-workflow:
+    when:
+      not:
+        equal: [ main, << pipeline.git.branch >> ]
     jobs:
       - promote
 
