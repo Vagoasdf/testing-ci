@@ -21,12 +21,21 @@ workflows:
 
   promote-workflow:
     when:
-      - not: << pipeline.parameters.is-no-promote >>
+      not: << pipeline.parameters.is-no-promote >>
     jobs:
-      -promote
+      - promote
 
+command:
+  greeting:
+    parameters:
+      to:
+        default: "world"
+        type: string
+    steps:
+      - run: echo "Hello <<parameters.to>>"
 
 jobs:
+
   promote:
     executor: base
     steps:
@@ -42,6 +51,3 @@ jobs:
       - run :
           name: Notice we are on No Promote
           command : echo "No Promote!"
-
-
-
