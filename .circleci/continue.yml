@@ -20,8 +20,8 @@ workflows:
   no-promote-workflow:
     when:
       and:
-        - equal: [ true, << pipeline.parameters.is-no-promote >> ]
-        - equal: [ master, << pipeline.git.branch >> ]
+        - equal: << pipeline.parameters.is-no-promote >>
+        - equal: [ main, << pipeline.git.branch >> ]
     jobs:
       - no-promote
 
