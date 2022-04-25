@@ -2,4 +2,4 @@
 
 
 NO_PROMOTE=false
-echo '{ "is-no-promote": "'$NO_PROMOTE'" }' >> test.json
+echo '{ "is-no-promote": '$NO_PROMOTE' }' >> test.json
