@@ -33,24 +33,22 @@ jobs:
 
   select-workflow:
     executor: base
-    parameters:
-      is-no-promote:
-        type: env_var_name
-        default: NO_PROMOTE
     steps:
       - checkout
       - git_check_no_promote
       - run:
-          name: Checks if the PR has the No promote tag.
+          name: Saves the No promote value to an Bash Env Variable
           command: |
             cat is-no-promote
             echo "export NO_PROMOTE=$(cat is-no-promote)" >> $BASH_ENV
-      - greeting:
-          to: ${<< parameters.is-no-promote >>}
+      - run:
+          name: Creates parameters in a json file to pass to the next orb
+          command: |
+            echo '{ "is-no-promote": "'$NO_PROMOTE'" }' >> test.json
       - continuation/continue:
           configuration_path: .circleci/continue.yml
-          parameters: |
-            { "is-no-promote" : $<< parameters.is-no-promote >> }
+          parameters: test.json
+
 
 
 workflows:
