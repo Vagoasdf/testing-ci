@@ -2,8 +2,8 @@ version: 2.1
 
 parameters:
   is-no-promote:
-    type: string
-    default : "false"
+    type: boolean
+    default : false
 
 executors:
   base:
@@ -13,8 +13,14 @@ executors:
 
 workflows:
   version: 2
-
   no-promote-workflow:
+    when: << pipeline.parameters.is-no-promote >>
+    jobs:
+      - no-promote
+
+  promote-workflow:
+    when:
+      not: << pipeline.parameters.is-no-promote >>
     jobs:
       - promote
 
@@ -33,10 +39,8 @@ jobs:
     executor: base
     steps:
       - checkout
-      - greeting:
-          to: <<pipeline.parameters.is-no-promote>>
       - run:
-          name: Checks if the PR has the No promote tag.
+          name: Notice we are on promote
           command: echo "Promote!"
 
   no-promote:
